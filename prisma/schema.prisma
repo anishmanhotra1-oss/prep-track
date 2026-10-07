@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  passwordHash     String
+  name             String
+  timezone         String   @default("UTC")
+  dayStartHour     Int      @default(4)
+  dailyGoalMinutes Int      @default(240)
+  weekStart        String   @default("monday")
+  prefs            String?  @default("{}")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  authSessions        Session[]
+  passwordResetTokens PasswordResetToken[]
+  subjects            Subject[]
+  activeTimer         ActiveTimer?
+  studySessions       StudySession[]
+  dayLogs             DayLog[]
+  revisionSets        RevisionSet[]
+  revisionTopics      RevisionTopic[]
+  todos               Todo[]
+  routines            Routine[]
+  syllabusSubjects    SyllabusSubject[]
+  plannerBlocks       PlannerBlock[]
+
+  @@index([email])
+}
+
+model Session {
+  id           String    @id @default(uuid())
+  userId       String
+  refreshToken String    @unique
+  deviceInfo   String?
+  ipAddress    String?
+  revokedAt    DateTime?
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model Subject {
+  id         String    @id @default(uuid())
+  userId     String
+  name       String
+  color      String    @default("#3B82F6")
+  archivedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studySessions  StudySession[]
+  activeTimers   ActiveTimer[]
+  revisionTopics RevisionTopic[]
+  plannerBlocks  PlannerBlock[]
+
+  @@index([userId])
+}
+
+model ActiveTimer {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  subjectId     String?
+  topic         String?
+  targetSeconds Int?
+  startedAt     DateTime?
+  accumulatedMs Int       @default(0)
+  pausedAt      DateTime?
+  revise        Boolean   @default(false)
+  laps          String?   @default("[]")
+  status        String    @default("idle") // idle, running, paused
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+}
+
+model StudySession {
+  id              String    @id @default(uuid())
+  userId          String
+  subjectId       String?
+  topic           String
+  startAt         DateTime
+  endAt           DateTime
+  durationSeconds Int
+  tags            String    @default("[]")
+  note            String?
+  source          String    @default("timer") // timer, manual, planner
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject        Subject?        @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  laps           Lap[]
+  revisionTopics RevisionTopic[]
+
+  @@index([userId])
+}
+
+model Lap {
+  id        String   @id @default(uuid())
+  sessionId String
+  index     Int
+  splitMs   Int
+  totalMs   Int
+  createdAt DateTime @default(now())
+
+  session StudySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+model DayLog {
+  id        String   @id @default(uuid())
+  userId    String
+  date      String   // YYYY-MM-DD
+  note      String?
+  isRestDay Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model RevisionSet {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  intervals String   @default("[1,7,30]")
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revisionTopics RevisionTopic[]
+
+  @@index([userId])
+}
+
+model RevisionTopic {
+  id              String    @id @default(uuid())
+  userId          String
+  title           String
+  subjectId       String?
+  setId           String
+  stepIndex       Int       @default(0)
+  nextDueAt       DateTime
+  status          String    @default("active") // active, ignored, mastered
+  snoozedUntil    DateTime?
+  sourceSessionId String?
+  syllabusRowId   String?
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject       Subject?             @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  set           RevisionSet          @relation(fields: [setId], references: [id], onDelete: Restrict)
+  sourceSession StudySession?        @relation(fields: [sourceSessionId], references: [id], onDelete: SetNull)
+  completions   RevisionCompletion[]
+  todos         Todo[]
+
+  @@index([userId])
+}
+
+model RevisionCompletion {
+  id          String   @id @default(uuid())
+  topicId     String
+  stepIndex   Int
+  completedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  topic RevisionTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([topicId])
+}
+
+model Todo {
+  id               String    @id @default(uuid())
+  userId           String
+  title            String
+  plannedMinutes   Int?
+  bucket           String    @default("today") // today, later
+  completedAt      DateTime?
+  date             String?   // YYYY-MM-DD for specific day context
+  linkedRevisionId String?
+  linkedRoutineId  String?
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  linkedRevision RevisionTopic? @relation(fields: [linkedRevisionId], references: [id], onDelete: SetNull)
+  linkedRoutine  Routine?       @relation(fields: [linkedRoutineId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+}
+
+model Routine {
+  id              String    @id @default(uuid())
+  userId          String
+  name            String
+  color           String    @default("#F97316")
+  frequencyType   String    @default("interval") // interval, specific_weekdays, weekly
+  intervalDays    Int?      @default(1)
+  weekdays        String    @default("[]")
+  durationMinutes Int       @default(30)
+  pausedAt        DateTime?
+  startDate       DateTime  @default(now())
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions RoutineCompletion[]
+  todos       Todo[]
+
+  @@index([userId])
+}
+
+model RoutineCompletion {
+  id        String   @id @default(uuid())
+  routineId String
+  date      String   // YYYY-MM-DD
+  createdAt DateTime @default(now())
+
+  routine Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@unique([routineId, date])
+  @@index([routineId, date])
+}
+
+model SyllabusSubject {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  order     Int       @default(0)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  columns SyllabusColumn[]
+  rows    SyllabusRow[]
+
+  @@index([userId])
+}
+
+model SyllabusColumn {
+  id        String   @id @default(uuid())
+  subjectId String
+  name      String
+  type      String   @default("text") // text, date
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subject SyllabusSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  cells   SyllabusCell[]
+
+  @@index([subjectId])
+}
+
+model SyllabusRow {
+  id        String    @id @default(uuid())
+  subjectId String
+  order     Int       @default(0)
+  done      Boolean   @default(false)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  subject SyllabusSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  cells   SyllabusCell[]
+
+  @@index([subjectId])
+}
+
+model SyllabusCell {
+  id        String   @id @default(uuid())
+  rowId     String
+  columnId  String
+  value     String?  @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  row    SyllabusRow    @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  column SyllabusColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  @@unique([rowId, columnId])
+  @@index([rowId])
+}
+
+model PlannerBlock {
+  id         String    @id @default(uuid())
+  userId     String
+  title      String
+  subjectId  String?
+  startAt    DateTime
+  endAt      DateTime
+  recurrence String?   // JSON string
+  seriesId   String?
+  exceptions String?   // JSON string
+  doneAt     DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+}
