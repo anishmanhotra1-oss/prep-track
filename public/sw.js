@@ -38,11 +38,13 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Bypass cache for API requests, SSE, and non-GET requests
+  // Bypass cache for API requests, SSE, media range requests, and video/audio files
   if (
     request.method !== 'GET' ||
     url.pathname.startsWith('/api/') ||
-    url.pathname.includes('/events')
+    url.pathname.includes('/events') ||
+    request.headers.has('range') ||
+    url.pathname.match(/\.(mp4|webm|ogv|mp3|wav|ogg)$/i)
   ) {
     return;
   }

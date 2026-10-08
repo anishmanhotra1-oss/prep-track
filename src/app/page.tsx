@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { HeroVideoPlayer } from "@/components/landing/HeroVideoPlayer";
 
 export default function LandingPage() {
   const [activeTab, setActiveTab] = useState<"stopwatch" | "revisions" | "syllabus" | "planner">("stopwatch");
@@ -162,33 +163,7 @@ export default function LandingPage() {
           </div>
 
           {/* Product Preview Video / Showcase Frame */}
-          <div className="w-full max-w-5xl mt-4 sm:mt-8 relative rounded-2xl sm:rounded-3xl p-2 sm:p-3 bg-gradient-to-b from-orange-200/50 via-orange-100/20 to-transparent dark:from-zinc-800/60 dark:via-zinc-900/40 border border-orange-200/60 dark:border-zinc-800 shadow-2xl overflow-hidden">
-            <div className="rounded-xl sm:rounded-2xl overflow-hidden relative shadow-inner bg-zinc-950 flex items-center justify-center">
-              <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                controls
-                poster="/prepwise_dashboard_preview.png"
-                className="w-full h-auto max-h-[650px] object-cover rounded-xl sm:rounded-2xl shadow-inner"
-              >
-                <source src="/demo-video.mp4" type="video/mp4" />
-                <source src="/preview.mp4" type="video/mp4" />
-                <source src="/demo.mp4" type="video/mp4" />
-                <source src="/video.mp4" type="video/mp4" />
-                {/* Fallback Image if video is not supported or missing */}
-                <Image
-                  src="/prepwise_dashboard_preview.png"
-                  alt="PrepWise Dashboard Preview"
-                  width={1200}
-                  height={675}
-                  className="w-full h-auto object-cover rounded-xl sm:rounded-2xl"
-                  priority
-                />
-              </video>
-            </div>
-          </div>
+          <HeroVideoPlayer />
         </section>
 
         {/* Social Proof & Metrics Bar */}
