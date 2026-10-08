@@ -1,19 +1,25 @@
-const CACHE_NAME = 'prepwise-v1';
+const CACHE_NAME = 'prepwise-v2';
 
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/favicon.png',
   '/logo.png',
-  '/prepwise_dashboard_preview.png'
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('PWA: Failed to cache some static assets during install', err);
-      });
+    caches.open(CACHE_NAME).then(async (cache) => {
+      for (const asset of STATIC_ASSETS) {
+        try {
+          await cache.add(asset);
+        } catch (err) {
+          console.warn(`PWA SW: Could not cache asset ${asset}`, err);
+        }
+      }
     })
   );
   self.skipWaiting();
@@ -38,7 +44,7 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Bypass cache for API requests, SSE, media range requests, and video/audio files
+  // Bypass cache for non-GET, API routes, SSE, media range requests, and audio/video files
   if (
     request.method !== 'GET' ||
     url.pathname.startsWith('/api/') ||
@@ -49,7 +55,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first strategy for page routes & assets to keep app updated
+  // Network-first strategy with cache fallback
   event.respondWith(
     fetch(request)
       .then((networkResponse) => {
