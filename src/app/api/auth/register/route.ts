@@ -71,7 +71,7 @@ export async function POST(req: Request) {
 
     // Create session
     const refreshToken = await signRefreshToken({ userId: user.id, email: user.email });
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year persistent session
 
     const session = await prisma.session.create({
       data: {

@@ -29,7 +29,7 @@ export async function signAccessToken(payload: TokenPayload): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("15m")
+    .setExpirationTime("30d")
     .sign(JWT_SECRET);
 }
 
@@ -37,7 +37,7 @@ export async function signRefreshToken(payload: TokenPayload): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime("365d")
     .sign(JWT_REFRESH_SECRET);
 }
 
@@ -67,7 +67,7 @@ export async function setAuthCookies(accessToken: string, refreshToken: string) 
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 15 * 60, // 15 mins
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   });
 
   cookieStore.set("refresh_token", refreshToken, {
@@ -75,7 +75,7 @@ export async function setAuthCookies(accessToken: string, refreshToken: string) 
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 365 * 24 * 60 * 60, // 365 days (1 year)
   });
 }
 
@@ -89,8 +89,9 @@ export async function getAuthenticatedUser(): Promise<{ id: string; email: strin
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("access_token")?.value;
+
     if (!token) {
-      // Try refresh token if access token expired
+      // Try refresh token if access token expired or missing
       const refreshToken = cookieStore.get("refresh_token")?.value;
       if (!refreshToken) return null;
 
@@ -107,7 +108,14 @@ export async function getAuthenticatedUser(): Promise<{ id: string; email: strin
         return null;
       }
 
-      // Re-issue access token
+      // Automatically extend session expiration date on activity (Rolling Session)
+      const extendedExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
+      await prisma.session.update({
+        where: { id: session.id },
+        data: { expiresAt: extendedExpiresAt },
+      });
+
+      // Re-issue access token and refresh cookies
       const newAccessToken = await signAccessToken({
         userId: session.user.id,
         email: session.user.email,
@@ -119,7 +127,38 @@ export async function getAuthenticatedUser(): Promise<{ id: string; email: strin
     }
 
     const payload = await verifyAccessToken(token);
-    if (!payload) return null;
+    if (!payload) {
+      // If access token failed validation, fall back to refresh token check
+      const refreshToken = cookieStore.get("refresh_token")?.value;
+      if (!refreshToken) return null;
+
+      const refreshPayload = await verifyRefreshToken(refreshToken);
+      if (!refreshPayload) return null;
+
+      const session = await prisma.session.findUnique({
+        where: { refreshToken },
+        include: { user: true },
+      });
+
+      if (!session || session.revokedAt || session.expiresAt < new Date()) {
+        return null;
+      }
+
+      const extendedExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+      await prisma.session.update({
+        where: { id: session.id },
+        data: { expiresAt: extendedExpiresAt },
+      });
+
+      const newAccessToken = await signAccessToken({
+        userId: session.user.id,
+        email: session.user.email,
+        sessionId: session.id,
+      });
+
+      await setAuthCookies(newAccessToken, refreshToken);
+      return { id: session.user.id, email: session.user.email, name: session.user.name };
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
