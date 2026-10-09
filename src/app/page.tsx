@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   Timer,
   RotateCcw,
@@ -31,8 +32,23 @@ import { Card } from "@/components/ui/Card";
 import { HeroVideoPlayer } from "@/components/landing/HeroVideoPlayer";
 
 export default function LandingPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"stopwatch" | "revisions" | "syllabus" | "planner">("stopwatch");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => {
+        if (res.ok) {
+          setIsLoggedIn(true);
+          router.replace("/stopwatch");
+        } else {
+          setIsLoggedIn(false);
+        }
+      })
+      .catch(() => setIsLoggedIn(false));
+  }, [router]);
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -105,20 +121,32 @@ export default function LandingPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            <Link
-              href="/login"
-              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold text-zinc-700 dark:text-zinc-200 bg-orange-50/80 dark:bg-zinc-800 hover:bg-orange-100 dark:hover:bg-zinc-700 transition-colors border border-orange-200/60 dark:border-zinc-700 flex items-center gap-1 sm:gap-1.5"
-            >
-              <LogIn className="w-3.5 h-3.5 text-[#FF8A33]" />
-              <span>Log In</span>
-            </Link>
-            <Link
-              href="/register"
-              className="px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-bold text-white bg-[#FF8A33] hover:bg-[#FF7A1A] shadow-md shadow-orange-500/25 transition-all flex items-center gap-1 sm:gap-1.5"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>Create Account</span>
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                href="/stopwatch"
+                className="px-4 py-2 rounded-full text-xs font-bold text-white bg-[#FF8A33] hover:bg-[#FF7A1A] shadow-md shadow-orange-500/25 transition-all flex items-center gap-1.5"
+              >
+                <span>Go to Workspace</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold text-zinc-700 dark:text-zinc-200 bg-orange-50/80 dark:bg-zinc-800 hover:bg-orange-100 dark:hover:bg-zinc-700 transition-colors border border-orange-200/60 dark:border-zinc-700 flex items-center gap-1 sm:gap-1.5"
+                >
+                  <LogIn className="w-3.5 h-3.5 text-[#FF8A33]" />
+                  <span>Log In</span>
+                </Link>
+                <Link
+                  href="/register"
+                  className="px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-bold text-white bg-[#FF8A33] hover:bg-[#FF7A1A] shadow-md shadow-orange-500/25 transition-all flex items-center gap-1 sm:gap-1.5"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Create Account</span>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

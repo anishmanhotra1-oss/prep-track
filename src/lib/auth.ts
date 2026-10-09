@@ -110,10 +110,14 @@ export async function getAuthenticatedUser(): Promise<{ id: string; email: strin
 
       // Automatically extend session expiration date on activity (Rolling Session)
       const extendedExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
-      await prisma.session.update({
-        where: { id: session.id },
-        data: { expiresAt: extendedExpiresAt },
-      });
+      try {
+        await prisma.session.update({
+          where: { id: session.id },
+          data: { expiresAt: extendedExpiresAt },
+        });
+      } catch {
+        // ignore DB update failure during read-only ops
+      }
 
       // Re-issue access token and refresh cookies
       const newAccessToken = await signAccessToken({
@@ -122,7 +126,11 @@ export async function getAuthenticatedUser(): Promise<{ id: string; email: strin
         sessionId: session.id,
       });
 
-      await setAuthCookies(newAccessToken, refreshToken);
+      try {
+        await setAuthCookies(newAccessToken, refreshToken);
+      } catch {
+        // Safe to ignore when called within a read-only Server Component layout/page render
+      }
       return { id: session.user.id, email: session.user.email, name: session.user.name };
     }
 
@@ -145,10 +153,14 @@ export async function getAuthenticatedUser(): Promise<{ id: string; email: strin
       }
 
       const extendedExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-      await prisma.session.update({
-        where: { id: session.id },
-        data: { expiresAt: extendedExpiresAt },
-      });
+      try {
+        await prisma.session.update({
+          where: { id: session.id },
+          data: { expiresAt: extendedExpiresAt },
+        });
+      } catch {
+        // ignore
+      }
 
       const newAccessToken = await signAccessToken({
         userId: session.user.id,
@@ -156,7 +168,11 @@ export async function getAuthenticatedUser(): Promise<{ id: string; email: strin
         sessionId: session.id,
       });
 
-      await setAuthCookies(newAccessToken, refreshToken);
+      try {
+        await setAuthCookies(newAccessToken, refreshToken);
+      } catch {
+        // Safe to ignore when called within a read-only Server Component
+      }
       return { id: session.user.id, email: session.user.email, name: session.user.name };
     }
 
