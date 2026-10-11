@@ -17,6 +17,21 @@ const createSessionSchema = z.object({
   source: z.string().optional().default("manual"),
 });
 
+function parseSessionTags(session: any) {
+  let tags: string[] = [];
+  if (Array.isArray(session.tags)) {
+    tags = session.tags;
+  } else if (typeof session.tags === "string") {
+    try {
+      const parsed = JSON.parse(session.tags);
+      tags = Array.isArray(parsed) ? parsed : (session.tags.trim() ? [session.tags.trim()] : []);
+    } catch {
+      tags = session.tags.trim() ? [session.tags.trim()] : [];
+    }
+  }
+  return { ...session, tags };
+}
+
 export async function GET(req: Request) {
   try {
     const user = await getAuthenticatedUser();
@@ -45,7 +60,10 @@ export async function GET(req: Request) {
 
     const totalSeconds = sessions.reduce((acc, s) => acc + s.durationSeconds, 0);
 
-    return NextResponse.json({ sessions, totalSeconds });
+    return NextResponse.json({
+      sessions: sessions.map(parseSessionTags),
+      totalSeconds,
+    });
   } catch (error) {
     return NextResponse.json({ error: { code: "SERVER_ERROR", message: "Failed to fetch study sessions" } }, { status: 500 });
   }
@@ -102,7 +120,7 @@ export async function POST(req: Request) {
       revalidatePath("/stopwatch");
     } catch (e) {}
 
-    return NextResponse.json({ studySession }, { status: 201 });
+    return NextResponse.json({ studySession: parseSessionTags(studySession) }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: { code: "SERVER_ERROR", message: "Failed to create study session" } }, { status: 500 });
   }

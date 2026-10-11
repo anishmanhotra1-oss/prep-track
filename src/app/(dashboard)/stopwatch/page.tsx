@@ -181,13 +181,14 @@ export default function StopwatchPage() {
 
   const handleSaveSession = async () => {
     try {
+      const tagsToSend = Array.isArray(saveTags) ? saveTags : [];
       const res = await fetch("/api/timer/stop", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           subjectId: subjectId || null,
           topic: topic || "Focus Session",
-          tags: saveTags,
+          tags: tagsToSend,
           note: saveNote,
         }),
       });
@@ -196,7 +197,11 @@ export default function StopwatchPage() {
         const json = await res.json();
         setActiveTimer(json.activeTimer);
         setIsSaveModalOpen(false);
+        setSaveTags([]);
+        setSaveNote("");
         queryClient.invalidateQueries();
+        queryClient.invalidateQueries({ queryKey: ["stats"] });
+        queryClient.invalidateQueries({ queryKey: ["today-sessions"] });
         toast("Study session saved successfully!", "success");
       }
     } catch (e) {
@@ -566,13 +571,13 @@ export default function StopwatchPage() {
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-text-muted uppercase">Tags</label>
             <div className="flex flex-wrap items-center gap-1.5">
-              {saveTags.map((tag) => (
+              {(Array.isArray(saveTags) ? saveTags : []).map((tag) => (
                 <span
                   key={tag}
                   className="px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-[#B85A12] flex items-center gap-1"
                 >
                   #{tag}
-                  <button onClick={() => setSaveTags(saveTags.filter((t) => t !== tag))}>&times;</button>
+                  <button onClick={() => setSaveTags((Array.isArray(saveTags) ? saveTags : []).filter((t) => t !== tag))}>&times;</button>
                 </span>
               ))}
               <input
@@ -584,7 +589,8 @@ export default function StopwatchPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && newTagInput.trim()) {
                     e.preventDefault();
-                    setSaveTags([...saveTags, newTagInput.trim().toLowerCase()]);
+                    const current = Array.isArray(saveTags) ? saveTags : [];
+                    setSaveTags([...current, newTagInput.trim().toLowerCase()]);
                     setNewTagInput("");
                   }
                 }}

@@ -69,6 +69,13 @@ export default function TodosPage() {
   const totalPlannedMinutesToday = todosData?.totalPlannedMinutesToday || 0;
   const routines = routinesData?.routines || [];
 
+  // Edit Todo State
+  const [editingTodo, setEditingTodo] = useState<any>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editMins, setEditMins] = useState("");
+  const [editBucket, setEditBucket] = useState<"today" | "later">("today");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
   // Todo Mutations
   const addTodoMutation = useMutation({
     mutationFn: async (payload: any) => {
@@ -87,6 +94,50 @@ export default function TodosPage() {
       toast("To-do item added", "success");
     },
   });
+
+  const updateTodoMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error?.message || "Failed to update task");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+      setIsEditModalOpen(false);
+      setEditingTodo(null);
+      toast("Task updated successfully", "success");
+    },
+    onError: (err: any) => toast(err.message, "error"),
+  });
+
+  const handleOpenEditTodo = (todo: any) => {
+    setEditingTodo(todo);
+    setEditTitle(todo.title || "");
+    setEditMins(todo.plannedMinutes ? todo.plannedMinutes.toString() : "");
+    setEditBucket(todo.bucket || "today");
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEditTodo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTodo || !editTitle.trim()) return;
+    const parsedMins = editMins ? parseInt(editMins) : null;
+    updateTodoMutation.mutate({
+      id: editingTodo.id,
+      payload: {
+        title: editTitle.trim(),
+        plannedMinutes: parsedMins && parsedMins > 0 ? parsedMins : null,
+        bucket: editBucket,
+      },
+    });
+  };
 
   const toggleTodoMutation = useMutation({
     mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
@@ -305,6 +356,13 @@ export default function TodosPage() {
 
                     <div className="flex items-center gap-1">
                       <button
+                        onClick={() => handleOpenEditTodo(todo)}
+                        className="p-1 text-text-muted hover:text-[#FF9A4D] rounded"
+                        title="Edit task"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => moveTodoBucketMutation.mutate({ id: todo.id, bucket: "later" })}
                         className="p-1 text-text-muted hover:text-[#B85A12] rounded"
                         title="Move to Later"
@@ -374,12 +432,22 @@ export default function TodosPage() {
                       <span className="font-semibold text-text-primary">{todo.title}</span>
                     </div>
 
-                    <button
-                      onClick={() => deleteTodoMutation.mutate(todo.id)}
-                      className="p-1 text-text-muted hover:text-red-500"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleOpenEditTodo(todo)}
+                        className="p-1 text-text-muted hover:text-[#FF9A4D]"
+                        title="Edit task"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => deleteTodoMutation.mutate(todo.id)}
+                        className="p-1 text-text-muted hover:text-red-500"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 );
               })
@@ -536,6 +604,67 @@ export default function TodosPage() {
           </div>
         )}
       </Card>
+
+      {/* Edit Todo Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingTodo(null);
+        }}
+        title="Edit Task"
+      >
+        <form onSubmit={handleSaveEditTodo} className="flex flex-col gap-4">
+          <Input
+            label="Task Title"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            required
+            maxLength={120}
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Estimated Duration (Mins)"
+              type="number"
+              min={1}
+              max={1440}
+              placeholder="e.g. 30"
+              value={editMins}
+              onChange={(e) => setEditMins(e.target.value)}
+            />
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-text-muted uppercase">Bucket</label>
+              <select
+                value={editBucket}
+                onChange={(e) => setEditBucket(e.target.value as "today" | "later")}
+                className="w-full px-4 py-2.5 rounded-2xl bg-white/80 dark:bg-zinc-800 border border-orange-200/60 text-xs text-text-primary focus:outline-none"
+              >
+                <option value="today">Today's Agenda</option>
+                <option value="later">For Later (Backlog)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="ghost"
+              size="md"
+              type="button"
+              onClick={() => {
+                setIsEditModalOpen(false);
+                setEditingTodo(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="primary" size="md" type="submit" isLoading={updateTodoMutation.isPending}>
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

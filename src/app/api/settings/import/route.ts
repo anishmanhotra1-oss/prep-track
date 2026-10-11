@@ -17,12 +17,13 @@ export async function POST(req: Request) {
     // Import subjects if provided
     if (Array.isArray(backup.subjects)) {
       for (const subj of backup.subjects) {
-        if (subj.name) {
+        const cleanName = typeof subj?.name === "string" ? subj.name.trim().slice(0, 60) : "";
+        if (cleanName) {
           await prisma.subject.create({
             data: {
               userId: user.id,
-              name: subj.name,
-              color: subj.color || "#3B82F6",
+              name: cleanName,
+              color: typeof subj.color === "string" ? subj.color.slice(0, 30) : "#3B82F6",
             },
           });
         }
@@ -32,16 +33,22 @@ export async function POST(req: Request) {
     // Import study sessions
     if (Array.isArray(backup.studySessions)) {
       for (const sess of backup.studySessions) {
-        if (sess.topic && sess.startAt && sess.endAt) {
+        const cleanTopic = typeof sess?.topic === "string" ? sess.topic.trim().slice(0, 120) : "";
+        if (cleanTopic && sess.startAt && sess.endAt) {
+          const rawTags = Array.isArray(sess.tags)
+            ? sess.tags
+            : typeof sess.tags === "string"
+            ? [sess.tags]
+            : [];
           await prisma.studySession.create({
             data: {
               userId: user.id,
-              topic: sess.topic,
+              topic: cleanTopic,
               startAt: new Date(sess.startAt),
               endAt: new Date(sess.endAt),
               durationSeconds: sess.durationSeconds || 1800,
-              tags: sess.tags || [],
-              note: sess.note || null,
+              tags: JSON.stringify(rawTags),
+              note: typeof sess.note === "string" ? sess.note.slice(0, 1000) : null,
               source: sess.source || "manual",
             },
           });

@@ -109,6 +109,7 @@ export default function HistoryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
       setIsAddModalOpen(false);
       resetForm();
       toast("Manual session added", "success");
@@ -128,6 +129,7 @@ export default function HistoryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
       setIsEditModalOpen(false);
       resetForm();
       toast("Session updated", "success");
@@ -142,6 +144,7 @@ export default function HistoryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
       toast("Session deleted", "info");
     },
   });
@@ -192,6 +195,17 @@ export default function HistoryPage() {
   const handleOpenAdd = () => {
     resetForm();
     setIsAddModalOpen(true);
+  const getSafeTags = (tags: any): string[] => {
+    if (Array.isArray(tags)) return tags;
+    if (typeof tags === "string") {
+      try {
+        const p = JSON.parse(tags);
+        return Array.isArray(p) ? p : (tags.trim() ? [tags.trim()] : []);
+      } catch {
+        return tags.trim() ? [tags.trim()] : [];
+      }
+    }
+    return [];
   };
 
   const handleOpenEdit = (sess: any) => {
@@ -202,7 +216,7 @@ export default function HistoryPage() {
     const endObj = new Date(sess.endAt);
     setFormStartTime(!isNaN(startObj.getTime()) ? startObj.toTimeString().substring(0, 5) : "09:00");
     setFormEndTime(!isNaN(endObj.getTime()) ? endObj.toTimeString().substring(0, 5) : "10:30");
-    setFormTags(sess.tags || []);
+    setFormTags(getSafeTags(sess.tags));
     setFormNote(sess.note || "");
     setIsEditModalOpen(true);
   };
@@ -538,20 +552,24 @@ export default function HistoryPage() {
                       </div>
 
                       {/* Tag chips & Note */}
-                      {((sess.tags && sess.tags.length > 0) || sess.note) && (
-                        <div className="pt-2 border-t border-orange-50 dark:border-zinc-700/50 flex flex-col gap-1.5 text-xs text-text-muted">
-                          {sess.tags && sess.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {sess.tags.map((t: string) => (
-                                <span key={t} className="px-2 py-0.5 rounded-full bg-orange-50 text-[#B85A12] font-medium text-[10px]">
-                                  #{t}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          {sess.note && <p className="italic text-text-primary">{sess.note}</p>}
-                        </div>
-                      )}
+                      {(() => {
+                        const safeTags = getSafeTags(sess.tags);
+                        if (safeTags.length === 0 && !sess.note) return null;
+                        return (
+                          <div className="pt-2 border-t border-orange-50 dark:border-zinc-700/50 flex flex-col gap-1.5 text-xs text-text-muted">
+                            {safeTags.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {safeTags.map((t: string) => (
+                                  <span key={t} className="px-2 py-0.5 rounded-full bg-orange-50 text-[#B85A12] font-medium text-[10px]">
+                                    #{t}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {sess.note && <p className="italic text-text-primary">{sess.note}</p>}
+                          </div>
+                        );
+                      })()}
 
                       {/* Expandable Laps */}
                       {sess.laps && sess.laps.length > 0 && (

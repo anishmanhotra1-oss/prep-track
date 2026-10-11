@@ -158,7 +158,30 @@ export async function GET(req: Request) {
     const totalDaysLogged = Object.keys(dailyMinsMap).length;
     const restDaysCount = restDaySet.size;
 
+    // Today & Yesterday comparison
+    const todayKeyStr = now.toISOString().split("T")[0];
+    const yesterdayDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const yesterdayKeyStr = yesterdayDate.toISOString().split("T")[0];
+
+    const todayMins = dailyMinsMap[todayKeyStr] || 0;
+    const todayHours = Math.round((todayMins / 60) * 10) / 10;
+    const yesterdayMins = dailyMinsMap[yesterdayKeyStr] || 0;
+    const yesterdayHours = Math.round((yesterdayMins / 60) * 10) / 10;
+    const diffHours = Math.round((todayHours - yesterdayHours) * 10) / 10;
+    const todayComparison =
+      diffHours > 0
+        ? `+${diffHours}h vs yesterday`
+        : diffHours < 0
+        ? `${diffHours}h vs yesterday`
+        : "Same as yesterday";
+
     return NextResponse.json({
+      todayHours,
+      todayMins,
+      todaySeconds: todayMins * 60,
+      yesterdayHours,
+      todayComparison,
+      diffHours,
       streak: currentStreak,
       bestDay: {
         date: bestDayKey

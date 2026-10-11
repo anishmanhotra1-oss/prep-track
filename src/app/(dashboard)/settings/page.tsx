@@ -16,6 +16,7 @@ import {
   Check,
   Archive,
   RefreshCw,
+  Edit2,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -60,6 +61,12 @@ export default function SettingsPage() {
   // Subject Form State
   const [newSubjName, setNewSubjName] = useState("");
   const [newSubjColor, setNewSubjColor] = useState("#3B82F6");
+
+  // Edit Subject Modal State
+  const [editingSubj, setEditingSubj] = useState<any>(null);
+  const [editSubjName, setEditSubjName] = useState("");
+  const [editSubjColor, setEditSubjColor] = useState("#3B82F6");
+  const [isEditSubjModalOpen, setIsEditSubjModalOpen] = useState(false);
 
   // Revision Set State
   const [newSetName, setNewSetName] = useState("");
@@ -160,6 +167,45 @@ export default function SettingsPage() {
       toast("Subject removed", "info");
     },
   });
+
+  // Edit / Rename Subject Mutation
+  const updateSubjectMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: { name: string; color: string } }) => {
+      const res = await fetch(`/api/subjects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error?.message || "Failed to update subject");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
+      setIsEditSubjModalOpen(false);
+      setEditingSubj(null);
+      toast("Subject renamed successfully", "success");
+    },
+    onError: (err: any) => toast(err.message, "error"),
+  });
+
+  const handleOpenEditSubject = (subj: any) => {
+    setEditingSubj(subj);
+    setEditSubjName(subj.name || "");
+    setEditSubjColor(subj.color || "#3B82F6");
+    setIsEditSubjModalOpen(true);
+  };
+
+  const handleSaveEditSubject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSubj || !editSubjName.trim()) return;
+    updateSubjectMutation.mutate({
+      id: editingSubj.id,
+      payload: { name: editSubjName.trim(), color: editSubjColor },
+    });
+  };
 
   // Add Revision Set Mutation
   const addRevisionSetMutation = useMutation({
@@ -360,13 +406,22 @@ export default function SettingsPage() {
                   <div className="w-3.5 h-3.5 rounded-full shrink-0" style={{ backgroundColor: subj.color || "#3B82F6" }} />
                   <span className="text-sm font-semibold text-text-primary truncate max-w-[200px]" title={subj.name}>{subj.name}</span>
                 </div>
-                <button
-                  onClick={() => deleteSubjectMutation.mutate(subj.id)}
-                  className="p-1 text-text-muted hover:text-red-500 rounded-lg transition-colors shrink-0"
-                  title="Remove subject"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => handleOpenEditSubject(subj)}
+                    className="p-1 text-text-muted hover:text-[#FF9A4D] rounded-lg transition-colors"
+                    title="Rename / edit subject"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => deleteSubjectMutation.mutate(subj.id)}
+                    className="p-1 text-text-muted hover:text-red-500 rounded-lg transition-colors"
+                    title="Remove subject"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -550,6 +605,61 @@ export default function SettingsPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Edit / Rename Subject Modal */}
+      <Modal
+        isOpen={isEditSubjModalOpen}
+        onClose={() => {
+          setIsEditSubjModalOpen(false);
+          setEditingSubj(null);
+        }}
+        title="Rename / Edit Subject"
+      >
+        <form onSubmit={handleSaveEditSubject} className="flex flex-col gap-4">
+          <Input
+            label="Subject Name"
+            value={editSubjName}
+            onChange={(e) => setEditSubjName(e.target.value)}
+            required
+            maxLength={60}
+          />
+
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-semibold text-text-muted uppercase">Color Theme</span>
+            <div className="flex items-center gap-2">
+              {COLOR_PALETTE.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setEditSubjColor(c)}
+                  className="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110"
+                  style={{
+                    backgroundColor: c,
+                    borderColor: editSubjColor === c ? "#2B2118" : "transparent",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="ghost"
+              size="md"
+              type="button"
+              onClick={() => {
+                setIsEditSubjModalOpen(false);
+                setEditingSubj(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="primary" size="md" type="submit" isLoading={updateSubjectMutation.isPending}>
+              Save Subject
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

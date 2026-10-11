@@ -2,8 +2,14 @@ import { prisma } from "./prisma";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-// In-memory fallback cache
-const memoryStore = new Map<string, { count: number; resetAt: number }>();
+// In-memory fallback cache preserved across module reloads
+const globalForRateLimit = globalThis as unknown as {
+  __prepTrackRateLimitStore?: Map<string, { count: number; resetAt: number }>;
+};
+const memoryStore =
+  globalForRateLimit.__prepTrackRateLimitStore ||
+  new Map<string, { count: number; resetAt: number }>();
+globalForRateLimit.__prepTrackRateLimitStore = memoryStore;
 
 // Optional Upstash Redis limiter if environment variables are provided
 let upstashLimiter: Ratelimit | null = null;
@@ -166,11 +172,12 @@ export async function recordFailedAttempt(
     memoryStore.set(key, { count: 1, resetAt });
   }
 
-  // 2. Update DB
+  // 2. Update DB and get actual database count
+  let dbCount: number | null = null;
   try {
     const hasTable = await ensureDbRateLimitTable();
     if (hasTable) {
-      await prisma.$executeRawUnsafe(
+      const rows: any[] = await prisma.$queryRawUnsafe(
         `INSERT INTO "_RateLimit" ("key", "count", "resetAt")
          VALUES ($1, 1, $2)
          ON CONFLICT ("key") DO UPDATE 
@@ -181,17 +188,23 @@ export async function recordFailedAttempt(
          "resetAt" = CASE 
            WHEN "_RateLimit"."resetAt" < $3 THEN $2 
            ELSE "_RateLimit"."resetAt" 
-         END`,
+         END
+         RETURNING "count", "resetAt"`,
         key,
         resetAt,
         now
       );
+      if (rows && rows.length > 0 && rows[0]?.count !== undefined) {
+        dbCount = Number(rows[0].count);
+        const actualReset = Number(rows[0].resetAt || resetAt);
+        memoryStore.set(key, { count: dbCount, resetAt: actualReset });
+      }
     }
   } catch (e) {
     // Memory counter already set
   }
 
-  return memCount;
+  return dbCount !== null ? dbCount : memCount;
 }
 
 /**

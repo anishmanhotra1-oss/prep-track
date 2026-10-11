@@ -5,7 +5,12 @@ import { z } from "zod";
 import { notifyUserSync } from "@/lib/sse";
 
 const updateSchema = z.object({
-  title: z.string().min(1).optional(),
+  title: z
+    .string()
+    .trim()
+    .min(1, "Title cannot be empty")
+    .max(120, "Revision title cannot exceed 120 characters")
+    .optional(),
   subjectId: z.string().nullable().optional(),
   setId: z.string().optional(),
   status: z.enum(["active", "ignored", "mastered"]).optional(),

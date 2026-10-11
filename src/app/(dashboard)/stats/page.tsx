@@ -10,6 +10,7 @@ import {
   BarChart3,
   Moon,
   Filter,
+  RefreshCw,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -44,19 +45,24 @@ ChartJS.register(
 export default function StatsPage() {
   const [subjectRange, setSubjectRange] = useState<"7d" | "30d" | "all">("all");
 
-  const { data: statsData, isLoading } = useQuery({
+  const { data: statsData, isLoading, refetch } = useQuery({
     queryKey: ["stats", subjectRange],
     queryFn: async () => {
-      const res = await fetch(`/api/stats?subjectRange=${subjectRange}`, {
+      const res = await fetch(`/api/stats?subjectRange=${subjectRange}&_t=${Date.now()}`, {
         cache: "no-store",
+        headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
       });
       if (!res.ok) throw new Error("Failed to load stats");
       return res.json();
     },
     staleTime: 0,
     refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
+  const todayHours = statsData?.todayHours ?? 0;
+  const todayComparison = statsData?.todayComparison || "+0h vs yesterday";
+  const diffHours = statsData?.diffHours ?? 0;
   const streak = statsData?.streak || 0;
   const bestDay = statsData?.bestDay || { date: "N/A", hours: 0 };
   const topSubject = statsData?.topSubject || { name: "None", color: "#3B82F6", hours: 0 };
@@ -108,16 +114,52 @@ export default function StatsPage() {
 
   return (
     <div className="flex flex-col gap-8 max-w-5xl mx-auto py-2">
-      <div>
-        <h1 className="text-2xl font-extrabold text-text-primary tracking-tight">Analytics & Stats</h1>
-        <p className="text-xs text-text-muted mt-1">
-          Track your study streaks, subject breakdowns, and weekly productivity trends
-        </p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-text-primary tracking-tight">Analytics & Stats</h1>
+          <p className="text-xs text-text-muted mt-1">
+            Track your study streaks, subject breakdowns, and weekly productivity trends
+          </p>
+        </div>
+
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 shrink-0"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          Refresh Stats
+        </Button>
       </div>
 
       {/* Six Stat Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        {/* 1. Day Streak */}
+        {/* 1. Today Studied (with Before/After Comparison) */}
+        <Card className="flex flex-col gap-1 p-3.5 sm:p-4 bg-white/90 dark:bg-zinc-900/90 border-orange-200/60">
+          <div className="flex items-center justify-between text-text-muted">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Today</span>
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#FF9A4D]" />
+          </div>
+          <div className="text-xl sm:text-2xl font-extrabold text-text-primary mt-1">
+            {todayHours} <span className="text-xs font-normal text-text-muted">hrs</span>
+          </div>
+          <span
+            className={`text-[10px] font-semibold truncate ${
+              diffHours > 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : diffHours < 0
+                ? "text-amber-600"
+                : "text-text-muted"
+            }`}
+            title={todayComparison}
+          >
+            {todayComparison}
+          </span>
+        </Card>
+
+        {/* 2. Day Streak */}
         <Card className="flex flex-col gap-1 p-3.5 sm:p-4 bg-white/90 dark:bg-zinc-900/90">
           <div className="flex items-center justify-between text-text-muted">
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Day Streak</span>
@@ -128,19 +170,18 @@ export default function StatsPage() {
           </div>
         </Card>
 
-        {/* 2. Best Day */}
+        {/* 3. This Week */}
         <Card className="flex flex-col gap-1 p-3.5 sm:p-4 bg-white/90 dark:bg-zinc-900/90">
           <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Best Day</span>
-            <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">This Week</span>
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
           </div>
-          <div className="text-lg sm:text-xl font-extrabold text-text-primary mt-1">
-            {bestDay.hours}h
+          <div className="text-xl sm:text-2xl font-extrabold text-text-primary mt-1">
+            {thisWeekHours} <span className="text-xs font-normal text-text-muted">hrs</span>
           </div>
-          <span className="text-[10px] text-text-muted truncate">{bestDay.date}</span>
         </Card>
 
-        {/* 3. Top Subject */}
+        {/* 4. Top Subject */}
         <Card className="flex flex-col gap-1 p-3.5 sm:p-4 bg-white/90 dark:bg-zinc-900/90">
           <div className="flex items-center justify-between text-text-muted">
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Top Subject</span>
@@ -150,17 +191,6 @@ export default function StatsPage() {
             {topSubject.name}
           </div>
           <span className="text-[10px] text-text-muted">{topSubject.hours} hours</span>
-        </Card>
-
-        {/* 4. This Week */}
-        <Card className="flex flex-col gap-1 p-3.5 sm:p-4 bg-white/90 dark:bg-zinc-900/90">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">This Week</span>
-            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
-          </div>
-          <div className="text-xl sm:text-2xl font-extrabold text-text-primary mt-1">
-            {thisWeekHours} <span className="text-xs font-normal text-text-muted">hrs</span>
-          </div>
         </Card>
 
         {/* 5. Avg Session */}
@@ -174,15 +204,16 @@ export default function StatsPage() {
           </div>
         </Card>
 
-        {/* 6. Rest / Study Days */}
+        {/* 6. Best Day */}
         <Card className="flex flex-col gap-1 p-3.5 sm:p-4 bg-white/90 dark:bg-zinc-900/90">
           <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Days Ratio</span>
-            <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500" />
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Best Day</span>
+            <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
           </div>
-          <div className="text-xs font-extrabold text-text-primary mt-2 leading-tight truncate">
-            {daysRatio}
+          <div className="text-lg sm:text-xl font-extrabold text-text-primary mt-1">
+            {bestDay.hours}h
           </div>
+          <span className="text-[10px] text-text-muted truncate">{bestDay.date}</span>
         </Card>
       </div>
 

@@ -11,7 +11,7 @@ export default function ForgotPasswordPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [serverMessage, setServerMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,11 +24,16 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email }),
       });
 
+      const data = await res.json().catch(() => null);
+
       if (res.ok) {
+        const msg =
+          data?.message ||
+          "If an account exists with that email, password reset instructions have been sent.";
+        setServerMessage(msg);
         setSubmitted(true);
-        toast("Password reset instructions sent!", "success");
+        toast(msg, "success");
       } else {
-        const data = await res.json().catch(() => null);
         toast(data?.error?.message || "Failed to process request", "error");
       }
     } catch (err) {
@@ -48,13 +53,21 @@ export default function ForgotPasswordPage() {
       </div>
 
       {submitted ? (
-        <div className="p-4 rounded-2xl bg-orange-50 dark:bg-zinc-800 border border-orange-200 dark:border-zinc-700 text-xs text-text-primary space-y-2">
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="success-message"
+          className="p-4 rounded-2xl bg-orange-50 dark:bg-zinc-800 border border-orange-200 dark:border-zinc-700 text-xs text-text-primary space-y-2"
+        >
           <p className="font-semibold text-[#B85A12] flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
             Check your inbox
           </p>
+          <p className="text-text-primary font-medium leading-relaxed" id="reset-success-message">
+            {serverMessage || "If an account exists with that email, password reset instructions have been sent."}
+          </p>
           <p className="text-text-muted leading-relaxed">
-            If an account exists for <strong className="text-text-primary">{email}</strong>, we have sent a secure link to reset your password. Please check your inbox and spam folder.
+            We sent a secure link to <strong className="text-text-primary">{email}</strong>. Please check your inbox and spam folder.
           </p>
           <div className="pt-2">
             <Button
@@ -63,6 +76,7 @@ export default function ForgotPasswordPage() {
               onClick={() => {
                 setSubmitted(false);
                 setEmail("");
+                setServerMessage("");
               }}
               className="text-xs"
             >

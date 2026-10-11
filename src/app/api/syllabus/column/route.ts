@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { notifyUserSync } from "@/lib/sse";
+import { z } from "zod";
+
+const createColumnSchema = z.object({
+  subjectId: z.string().min(1, "Subject ID is required"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Column name is required")
+    .max(60, "Column name cannot exceed 60 characters"),
+  type: z.enum(["text", "date"]).default("text"),
+});
 
 export async function POST(req: Request) {
   try {
@@ -11,14 +21,22 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { subjectId, name, type } = body;
+    const result = createColumnSchema.safeParse(body);
+    if (!result.success) {
+      return NextResponse.json(
+        { error: { code: "VALIDATION_ERROR", message: "Invalid column fields" } },
+        { status: 400 }
+      );
+    }
+
+    const { subjectId, name, type } = result.data;
 
     const count = await prisma.syllabusColumn.count({ where: { subjectId } });
     const column = await prisma.syllabusColumn.create({
       data: {
         subjectId,
-        name: name || "New Column",
-        type: type || "text",
+        name,
+        type,
         order: count,
       },
     });

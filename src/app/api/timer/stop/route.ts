@@ -140,8 +140,20 @@ export async function POST(req: Request) {
       revalidatePath("/stopwatch");
     } catch (e) {}
 
+    let parsedTags: string[] = [];
+    if (Array.isArray(studySession.tags)) {
+      parsedTags = studySession.tags;
+    } else if (typeof studySession.tags === "string") {
+      try {
+        const p = JSON.parse(studySession.tags);
+        parsedTags = Array.isArray(p) ? p : (studySession.tags.trim() ? [studySession.tags.trim()] : []);
+      } catch {
+        parsedTags = studySession.tags.trim() ? [studySession.tags.trim()] : [];
+      }
+    }
+
     return NextResponse.json({
-      studySession,
+      studySession: { ...studySession, tags: parsedTags },
       activeTimer: {
         id: updatedTimer.id,
         accumulatedMs: 0,

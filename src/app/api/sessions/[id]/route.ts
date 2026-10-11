@@ -67,7 +67,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       revalidatePath("/stopwatch");
     } catch (e) {}
 
-    return NextResponse.json({ studySession: updated });
+    let parsedTags: string[] = [];
+    if (Array.isArray(updated.tags)) {
+      parsedTags = updated.tags;
+    } else if (typeof updated.tags === "string") {
+      try {
+        const p = JSON.parse(updated.tags);
+        parsedTags = Array.isArray(p) ? p : (updated.tags.trim() ? [updated.tags.trim()] : []);
+      } catch {
+        parsedTags = updated.tags.trim() ? [updated.tags.trim()] : [];
+      }
+    }
+
+    return NextResponse.json({ studySession: { ...updated, tags: parsedTags } });
   } catch (error) {
     return NextResponse.json({ error: { code: "SERVER_ERROR", message: "Failed to update study session" } }, { status: 500 });
   }
