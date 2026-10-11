@@ -275,7 +275,9 @@ export default function RevisionsPage() {
     const totalSteps = intervals.length;
 
     const dueObj = new Date(topic.nextDueAt);
-    const dueFormatted = dueObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const dueFormatted = !isNaN(dueObj.getTime())
+      ? dueObj.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      : "--";
 
     return (
       <div
@@ -288,7 +290,7 @@ export default function RevisionsPage() {
         }}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-2.5">
+          <div className="flex items-start gap-2.5 min-w-0">
             {isBulkMode && (
               <input
                 type="checkbox"
@@ -300,19 +302,20 @@ export default function RevisionsPage() {
                 className="mt-1 accent-[#FF9A4D]"
               />
             )}
-            <div>
+            <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span
-                  className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
+                  className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white max-w-[140px] truncate"
                   style={{ backgroundColor: topic.subject?.color || "#3B82F6" }}
+                  title={topic.subject?.name || "General"}
                 >
                   {topic.subject?.name || "General"}
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-[#B85A12]">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-[#B85A12] max-w-[120px] truncate" title={topic.set?.name || "Default"}>
                   {topic.set?.name || "Default"}
                 </span>
               </div>
-              <h4 className="text-sm font-extrabold text-text-primary mt-1.5">{topic.title}</h4>
+              <h4 className="text-sm font-extrabold text-text-primary mt-1.5 break-words line-clamp-2" title={topic.title}>{topic.title}</h4>
               <p
                 className={`text-xs font-semibold mt-1 ${
                   isOverdueSection ? "text-red-500 font-bold" : "text-text-muted"

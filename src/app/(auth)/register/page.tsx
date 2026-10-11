@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 
+export const dynamic = "force-dynamic";
+
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -18,17 +20,48 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Redirect signed-in users immediately away from register
+  React.useEffect(() => {
+    let isMounted = true;
+    fetch("/api/auth/me")
+      .then((res) => {
+        if (res.ok && isMounted) {
+          router.replace("/stopwatch");
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
+
+    if (!name.trim()) {
+      setError("Name is required");
+      return;
+    }
+
+    if (!email.trim()) {
+      setError("Email is required");
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, timezone: userTimezone }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), password, timezone: userTimezone }),
       });
 
       const data = await res.json();
@@ -55,8 +88,13 @@ export default function RegisterPage() {
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-300 font-medium">
-          {error}
+        <div className="p-3.5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-300 font-medium flex flex-col gap-1.5">
+          <span>{error}</span>
+          {(error.includes("sign in") || error.includes("already")) && (
+            <Link href="/login" className="font-bold underline text-[#B85A12] mt-0.5">
+              Click here to sign in &rarr;
+            </Link>
+          )}
         </div>
       )}
 

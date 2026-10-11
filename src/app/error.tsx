@@ -22,8 +22,20 @@ export default function RootError({
       </div>
 
       <h2 className="text-xl font-extrabold tracking-tight">Something unexpected occurred</h2>
-      <p className="text-xs text-[#6E5E52] mt-2 max-w-sm leading-relaxed">
-        A transient error occurred while loading this page. Please try refreshing.
+      <p className="text-sm font-semibold text-red-600 mt-2 max-w-md bg-red-50 p-3 rounded-2xl border border-red-200 break-words">
+        {error?.message && error.message.trim().length > 0
+          ? error.message
+          : "An error occurred while loading this page."}
+      </p>
+
+      {error?.digest && (
+        <p className="text-[11px] font-mono text-[#8C7B6E] mt-2">
+          Error ID: {error.digest}
+        </p>
+      )}
+
+      <p className="text-xs text-[#6E5E52] mt-3 max-w-sm leading-relaxed">
+        Please try refreshing the page or click below to retry loading the application.
       </p>
 
       <div className="flex items-center gap-3 mt-6">

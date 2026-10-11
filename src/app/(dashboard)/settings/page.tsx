@@ -356,13 +356,13 @@ export default function SettingsPage() {
                 key={subj.id}
                 className="flex items-center justify-between p-3 rounded-2xl bg-white/70 dark:bg-zinc-800/70 border border-orange-100 dark:border-zinc-700"
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: subj.color }} />
-                  <span className="text-sm font-semibold text-text-primary">{subj.name}</span>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-3.5 h-3.5 rounded-full shrink-0" style={{ backgroundColor: subj.color || "#3B82F6" }} />
+                  <span className="text-sm font-semibold text-text-primary truncate max-w-[200px]" title={subj.name}>{subj.name}</span>
                 </div>
                 <button
                   onClick={() => deleteSubjectMutation.mutate(subj.id)}
-                  className="p-1 text-text-muted hover:text-red-500 rounded-lg transition-colors"
+                  className="p-1 text-text-muted hover:text-red-500 rounded-lg transition-colors shrink-0"
                   title="Remove subject"
                 >
                   <Trash2 className="w-4 h-4" />

@@ -252,8 +252,9 @@ export default function SyllabusPage() {
                     <input
                       type="text"
                       defaultValue={subject.title}
+                      maxLength={60}
                       onBlur={(e) => updateSubjectMutation.mutate({ id: subject.id, title: e.target.value })}
-                      className="text-lg font-extrabold text-text-primary bg-transparent focus:outline-none focus:ring-2 focus:ring-[#FF9A4D] rounded-xl px-2 py-0.5"
+                      className="text-lg font-extrabold text-text-primary bg-transparent focus:outline-none focus:ring-2 focus:ring-[#FF9A4D] rounded-xl px-2 py-0.5 max-w-xs sm:max-w-md truncate"
                     />
 
                     {/* Progress chips */}
@@ -350,7 +351,7 @@ export default function SyllabusPage() {
                         columns.forEach((col: any) => {
                           if (col.type === "date" && cellMap[col.id] && !row.done) {
                             const target = new Date(cellMap[col.id]);
-                            if (target < new Date()) isOverdue = true;
+                            if (!isNaN(target.getTime()) && target < new Date()) isOverdue = true;
                           }
                         });
 

@@ -466,63 +466,75 @@ export default function TodosPage() {
         </form>
 
         {/* Routines Grid List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {routines.map((routine: any) => (
-            <div
-              key={routine.id}
-              className="p-4 rounded-2xl glass-card flex flex-col justify-between gap-3 border-l-4 relative"
-              style={{ borderLeftColor: routine.color }}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <button
-                    onClick={() => toggleRoutineMutation.mutate(routine.id)}
-                    className="text-text-muted hover:text-emerald-500 transition-colors"
-                  >
-                    <CheckCircle2
-                      className={`w-5 h-5 ${routine.isCompletedToday ? "text-emerald-500 fill-emerald-100" : ""}`}
-                    />
-                  </button>
-                  <div>
-                    <h4 className="text-sm font-extrabold text-text-primary">{routine.name}</h4>
-                    <p className="text-xs text-text-muted mt-0.5">
-                      Every {routine.intervalDays} day(s) &middot; {routine.durationMinutes}m
-                    </p>
+        {routines.length === 0 ? (
+          <div className="text-center py-8 px-4 rounded-2xl border border-dashed border-orange-200 dark:border-zinc-700 bg-orange-50/30 dark:bg-zinc-800/20 text-xs text-text-muted flex flex-col items-center justify-center gap-2">
+            <Sparkles className="w-6 h-6 text-[#FF9A4D]" />
+            <span className="font-bold text-text-primary">No habits or routines created yet</span>
+            <p className="max-w-md leading-relaxed">
+              Use the form above to add daily study habits (e.g. &quot;Morning Vocabulary Review&quot; or &quot;Daily Practice Problems&quot;). Check them off each day to build your streak!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {routines.map((routine: any) => (
+              <div
+                key={routine.id}
+                className="p-4 rounded-2xl glass-card flex flex-col justify-between gap-3 border-l-4 relative"
+                style={{ borderLeftColor: routine.color || "#F97316" }}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <button
+                      onClick={() => toggleRoutineMutation.mutate(routine.id)}
+                      className="text-text-muted hover:text-emerald-500 transition-colors mt-0.5 shrink-0"
+                    >
+                      <CheckCircle2
+                        className={`w-5 h-5 ${routine.isCompletedToday ? "text-emerald-500 fill-emerald-100" : ""}`}
+                      />
+                    </button>
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-extrabold text-text-primary break-words line-clamp-2" title={routine.name}>
+                        {routine.name}
+                      </h4>
+                      <p className="text-xs text-text-muted mt-0.5">
+                        Every {routine.intervalDays ?? 1} day(s) &middot; {routine.durationMinutes ?? 30}m
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() =>
+                        togglePauseRoutineMutation.mutate({ id: routine.id, paused: !routine.pausedAt })
+                      }
+                      className="p-1 text-text-muted hover:text-text-primary"
+                      title={routine.pausedAt ? "Resume" : "Pause"}
+                    >
+                      {routine.pausedAt ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                    </button>
+                    <button
+                      onClick={() => deleteRoutineMutation.mutate(routine.id)}
+                      className="p-1 text-text-muted hover:text-red-500"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() =>
-                      togglePauseRoutineMutation.mutate({ id: routine.id, paused: !routine.pausedAt })
-                    }
-                    className="p-1 text-text-muted hover:text-text-primary"
-                    title={routine.pausedAt ? "Resume" : "Pause"}
-                  >
-                    {routine.pausedAt ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-                  </button>
-                  <button
-                    onClick={() => deleteRoutineMutation.mutate(routine.id)}
-                    className="p-1 text-text-muted hover:text-red-500"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                {/* Stats Bar */}
+                <div className="pt-2 border-t border-orange-100 dark:border-zinc-800 flex items-center justify-between text-xs text-text-muted">
+                  <div className="flex items-center gap-1 text-orange-600 font-bold">
+                    <Flame className="w-3.5 h-3.5" />
+                    <span>{routine.streak ?? 0} streak</span>
+                  </div>
+                  <span>
+                    {routine.daysDone ?? 0}/{routine.daysScheduled ?? 0} days ({routine.completionPercentage ?? 0}%)
+                  </span>
                 </div>
               </div>
-
-              {/* Stats Bar */}
-              <div className="pt-2 border-t border-orange-100 dark:border-zinc-800 flex items-center justify-between text-xs text-text-muted">
-                <div className="flex items-center gap-1 text-orange-600 font-bold">
-                  <Flame className="w-3.5 h-3.5" />
-                  <span>{routine.streak} streak</span>
-                </div>
-                <span>
-                  {routine.daysDone}/{routine.daysScheduled} days ({routine.completionPercentage}%)
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -490,17 +490,26 @@ export default function PlannerPage() {
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: selectedBlock.subject?.color || "#FF9A4D" }}
                 />
-                <span className="font-bold text-text-primary">{selectedBlock.subject?.name || "General"}</span>
+                <span className="font-bold text-text-primary truncate max-w-xs">{selectedBlock.subject?.name || "General"}</span>
               </div>
               <p className="text-text-muted mt-1">
-                {new Date(selectedBlock.startAt).toLocaleString("en-US", {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}{" "}
-                &ndash; {new Date(selectedBlock.endAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                {(() => {
+                  const s = new Date(selectedBlock.startAt);
+                  const e = new Date(selectedBlock.endAt);
+                  const sStr = !isNaN(s.getTime())
+                    ? s.toLocaleString("en-US", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "--:--";
+                  const eStr = !isNaN(e.getTime())
+                    ? e.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+                    : "--:--";
+                  return `${sStr} \u2013 ${eStr}`;
+                })()}
               </p>
             </div>
 

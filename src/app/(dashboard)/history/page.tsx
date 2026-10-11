@@ -501,15 +501,15 @@ export default function HistoryPage() {
                             style={{ backgroundColor: sess.subject?.color || "#3B82F6" }}
                           />
                           <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-text-primary uppercase tracking-wide">
+                            <div className="flex items-center gap-2 max-w-sm">
+                              <span className="text-xs font-bold text-text-primary uppercase tracking-wide truncate max-w-[180px]" title={sess.subject?.name || "General Study"}>
                                 {sess.subject?.name || "General Study"}
                               </span>
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-[#B85A12] font-semibold capitalize">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-[#B85A12] font-semibold capitalize shrink-0">
                                 {sess.source}
                               </span>
                             </div>
-                            <h4 className="text-sm font-extrabold text-text-primary mt-0.5">{sess.topic}</h4>
+                            <h4 className="text-sm font-extrabold text-text-primary mt-0.5 break-words line-clamp-2 max-w-sm">{sess.topic || "Untitled Session"}</h4>
                             <p className="text-xs text-text-muted mt-1">
                               {startFormatted} &rarr; {endFormatted}
                             </p>

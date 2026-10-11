@@ -27,6 +27,22 @@ export const FloatingTimerDrawer: React.FC = () => {
     return () => clearInterval(interval);
   }, [getElapsedSeconds]);
 
+  // Automatically close drawer whenever user navigates to a new page so it never blocks navigation
+  useEffect(() => {
+    setMiniDrawerOpen(false);
+  }, [pathname, setMiniDrawerOpen]);
+
+  // Close drawer on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isMiniDrawerOpen) {
+        setMiniDrawerOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMiniDrawerOpen, setMiniDrawerOpen]);
+
   if (isStopwatchPage) return null;
 
   const handleStartPause = async () => {
@@ -78,6 +94,15 @@ export const FloatingTimerDrawer: React.FC = () => {
         </button>
       )}
 
+      {/* Backdrop overlay: 1 click anywhere outside immediately closes drawer */}
+      {isMiniDrawerOpen && (
+        <div
+          className="fixed inset-0 bg-black/25 backdrop-blur-[1px] z-40 transition-opacity"
+          onClick={() => setMiniDrawerOpen(false)}
+          aria-label="Close drawer overlay"
+        />
+      )}
+
       {/* Slide-in Mini Drawer */}
       {isMiniDrawerOpen && (
         <div className="fixed inset-y-0 right-0 z-50 w-full max-w-xs sm:max-w-sm sm:w-96 glass-card p-4 sm:p-6 bg-white/95 dark:bg-zinc-900/95 shadow-2xl border-l border-orange-200/50 dark:border-zinc-700 flex flex-col justify-between animate-slide-left rounded-l-3xl">
@@ -89,7 +114,8 @@ export const FloatingTimerDrawer: React.FC = () => {
               </div>
               <button
                 onClick={() => setMiniDrawerOpen(false)}
-                className="p-1.5 text-text-muted hover:text-text-primary hover:bg-orange-100/50 rounded-full"
+                className="p-2 text-text-muted hover:text-text-primary hover:bg-orange-100/60 dark:hover:bg-zinc-800 rounded-full transition-colors"
+                aria-label="Close drawer"
               >
                 <X className="w-5 h-5" />
               </button>
