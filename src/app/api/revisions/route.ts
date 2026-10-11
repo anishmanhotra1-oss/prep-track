@@ -4,8 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notifyUserSync } from "@/lib/sse";
 
+export const dynamic = "force-dynamic";
+
 const createRevisionSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+  title: z
+    .string()
+    .trim()
+    .min(1, "Title is required")
+    .max(120, "Revision topic title cannot exceed 120 characters"),
   subjectId: z.string().nullable().optional(),
   setId: z.string().min(1, "Revision set is required"),
   nextDueAt: z.string().optional(),

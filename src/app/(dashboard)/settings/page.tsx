@@ -253,7 +253,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="flex flex-col gap-4">
-            <Input label="Full Name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input label="Full Name" value={name} onChange={(e) => setName(e.target.value)} maxLength={70} />
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Time Zone</label>
@@ -317,6 +317,7 @@ export default function SettingsPage() {
                 placeholder="New Subject Name (e.g. Biology)"
                 value={newSubjName}
                 onChange={(e) => setNewSubjName(e.target.value)}
+                maxLength={60}
                 className="py-2 text-xs"
               />
               <Button
@@ -384,6 +385,7 @@ export default function SettingsPage() {
               placeholder="e.g. Exam Cramming"
               value={newSetName}
               onChange={(e) => setNewSetName(e.target.value)}
+              maxLength={80}
               className="py-2 text-xs"
             />
             <Input

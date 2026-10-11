@@ -200,8 +200,8 @@ export default function HistoryPage() {
     setFormTopic(sess.topic);
     const startObj = new Date(sess.startAt);
     const endObj = new Date(sess.endAt);
-    setFormStartTime(startObj.toTimeString().substring(0, 5));
-    setFormEndTime(endObj.toTimeString().substring(0, 5));
+    setFormStartTime(!isNaN(startObj.getTime()) ? startObj.toTimeString().substring(0, 5) : "09:00");
+    setFormEndTime(!isNaN(endObj.getTime()) ? endObj.toTimeString().substring(0, 5) : "10:30");
     setFormTags(sess.tags || []);
     setFormNote(sess.note || "");
     setIsEditModalOpen(true);
@@ -403,12 +403,22 @@ export default function HistoryPage() {
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-orange-100 dark:border-zinc-800 pb-3">
               <div>
                 <h3 className="text-base font-extrabold text-text-primary">
-                  {new Date(`${selectedDateStr}T00:00:00`).toLocaleDateString("en-US", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  {(() => {
+                    if (!selectedDateStr) return "Today";
+                    const parts = selectedDateStr.split("-").map(Number);
+                    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+                      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+                      if (!isNaN(d.getTime())) {
+                        return d.toLocaleDateString("en-US", {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        });
+                      }
+                    }
+                    return selectedDateStr;
+                  })()}
                 </h3>
                 <p className="text-xs text-text-muted mt-0.5">
                   {daySessions.length} session{daySessions.length !== 1 ? "s" : ""} &middot;{" "}
@@ -463,14 +473,20 @@ export default function HistoryPage() {
                 </div>
               ) : (
                 daySessions.map((sess: any) => {
-                  const startFormatted = new Date(sess.startAt).toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  });
-                  const endFormatted = new Date(sess.endAt).toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  });
+                  const startFormatted =
+                    sess?.startAt && !isNaN(new Date(sess.startAt).getTime())
+                      ? new Date(sess.startAt).toLocaleTimeString("en-US", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })
+                      : "--:--";
+                  const endFormatted =
+                    sess?.endAt && !isNaN(new Date(sess.endAt).getTime())
+                      ? new Date(sess.endAt).toLocaleTimeString("en-US", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })
+                      : "--:--";
                   const isLapsOpen = !!expandedLaps[sess.id];
 
                   return (
@@ -598,7 +614,7 @@ export default function HistoryPage() {
             </select>
           </div>
 
-          <Input label="Topic" value={formTopic} onChange={(e) => setFormTopic(e.target.value)} required />
+          <Input label="Topic" value={formTopic} onChange={(e) => setFormTopic(e.target.value)} required maxLength={120} />
 
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -623,6 +639,7 @@ export default function HistoryPage() {
               rows={3}
               value={formNote}
               onChange={(e) => setFormNote(e.target.value)}
+              maxLength={1000}
               className="w-full px-4 py-2.5 rounded-2xl bg-white/80 dark:bg-zinc-800 border border-orange-200/60 text-xs text-text-primary"
             />
           </div>
@@ -653,6 +670,7 @@ export default function HistoryPage() {
             placeholder="Add notes, reflections, or exam milestones for this day..."
             value={dayNoteInput}
             onChange={(e) => setDayNoteInput(e.target.value)}
+            maxLength={1000}
             className="w-full px-4 py-2.5 rounded-2xl bg-white/80 dark:bg-zinc-800 border border-orange-200/60 text-xs text-text-primary"
           />
           <div className="flex justify-end gap-2">

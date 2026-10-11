@@ -4,9 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notifyUserSync } from "@/lib/sse";
 
+export const dynamic = "force-dynamic";
+
 const updateSubjectSchema = z.object({
-  name: z.string().min(1).optional(),
-  color: z.string().optional(),
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .max(60, "Subject name cannot exceed 60 characters")
+    .optional(),
+  color: z.string().max(30).optional(),
   archivedAt: z.string().nullable().optional(),
 });
 

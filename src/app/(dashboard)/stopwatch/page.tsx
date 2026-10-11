@@ -410,6 +410,7 @@ export default function StopwatchPage() {
                 placeholder="What are you studying today?"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
+                maxLength={120}
                 className="w-full sm:flex-1 px-4 py-2.5 rounded-2xl bg-white/80 dark:bg-zinc-800 border border-orange-200/60 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-[#FF9A4D]"
               />
 
@@ -559,7 +560,7 @@ export default function StopwatchPage() {
       {/* Save Session Modal */}
       <Modal isOpen={isSaveModalOpen} onClose={() => setIsSaveModalOpen(false)} title="Save Study Session">
         <div className="flex flex-col gap-4">
-          <Input label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} required />
+          <Input label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} required maxLength={120} />
 
           {/* Tags */}
           <div className="flex flex-col gap-1.5">
@@ -579,6 +580,7 @@ export default function StopwatchPage() {
                 placeholder="+ Add tag (Enter)"
                 value={newTagInput}
                 onChange={(e) => setNewTagInput(e.target.value)}
+                maxLength={30}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && newTagInput.trim()) {
                     e.preventDefault();
@@ -599,6 +601,7 @@ export default function StopwatchPage() {
               placeholder="What did you learn during this session?"
               value={saveNote}
               onChange={(e) => setSaveNote(e.target.value)}
+              maxLength={1000}
               className="w-full px-4 py-2.5 rounded-2xl bg-white/80 dark:bg-zinc-800 border border-orange-200/60 text-xs text-text-primary focus:outline-none"
             />
           </div>

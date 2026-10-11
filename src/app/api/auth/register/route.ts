@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { registerSchema } from "@/lib/validations/auth";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, signAccessToken, signRefreshToken, setAuthCookies } from "@/lib/auth";
-import { checkRateLimit } from "@/lib/rateLimit";
+import { getClientIp, checkRateLimit } from "@/lib/rateLimit";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ip = getClientIp(req);
     const rate = checkRateLimit(`register_${ip}`, 10, 60000);
     if (!rate.allowed) {
       return NextResponse.json(

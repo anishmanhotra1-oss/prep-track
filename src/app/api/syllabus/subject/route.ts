@@ -4,8 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notifyUserSync } from "@/lib/sse";
 
+export const dynamic = "force-dynamic";
+
 const subjectSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+  title: z
+    .string()
+    .trim()
+    .min(1, "Title is required")
+    .max(60, "Subject title cannot exceed 60 characters"),
 });
 
 export async function POST(req: Request) {

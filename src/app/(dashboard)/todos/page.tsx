@@ -251,6 +251,7 @@ export default function TodosPage() {
               placeholder="What needs doing today?"
               value={todayTitle}
               onChange={(e) => setTodayTitle(e.target.value)}
+              maxLength={120}
               className="flex-1 px-4 py-2 rounded-2xl bg-white/80 dark:bg-zinc-800 border border-orange-200/60 text-xs text-text-primary focus:outline-none"
             />
             <input
@@ -343,6 +344,7 @@ export default function TodosPage() {
               placeholder="Something for another day..."
               value={laterTitle}
               onChange={(e) => setLaterTitle(e.target.value)}
+              maxLength={120}
               className="flex-1 px-4 py-2 rounded-2xl bg-white/80 dark:bg-zinc-800 border border-orange-200/60 text-xs text-text-primary focus:outline-none"
             />
             <Button variant="secondary" size="sm" type="submit" disabled={!laterTitle.trim()}>
@@ -405,6 +407,7 @@ export default function TodosPage() {
               placeholder="Routine Name (e.g. Morning Vocabulary Review)"
               value={routineName}
               onChange={(e) => setRoutineName(e.target.value)}
+              maxLength={80}
               className="py-2 text-xs flex-1 min-w-[200px]"
             />
 

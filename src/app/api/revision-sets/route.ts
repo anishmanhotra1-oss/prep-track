@@ -3,8 +3,14 @@ import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const setSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(80, "Set name cannot exceed 80 characters"),
   intervals: z.array(z.number().positive()).min(1, "At least 1 interval required"),
   isDefault: z.boolean().optional().default(false),
 });

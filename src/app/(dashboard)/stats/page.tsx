@@ -47,10 +47,14 @@ export default function StatsPage() {
   const { data: statsData, isLoading } = useQuery({
     queryKey: ["stats", subjectRange],
     queryFn: async () => {
-      const res = await fetch(`/api/stats?subjectRange=${subjectRange}`);
+      const res = await fetch(`/api/stats?subjectRange=${subjectRange}`, {
+        cache: "no-store",
+      });
       if (!res.ok) throw new Error("Failed to load stats");
       return res.json();
     },
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const streak = statsData?.streak || 0;

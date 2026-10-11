@@ -30,6 +30,12 @@ export function SyncListener({ userId }: { userId: string }) {
         }
         if (data.entity) {
           queryClient.invalidateQueries({ queryKey: [data.entity] });
+          if (data.entity === "study-sessions") {
+            queryClient.invalidateQueries({ queryKey: ["stats"] });
+            queryClient.invalidateQueries({ queryKey: ["today-sessions"] });
+            queryClient.invalidateQueries({ queryKey: ["history-aggregation"] });
+            queryClient.invalidateQueries({ queryKey: ["day-sessions"] });
+          }
         }
       } catch (e) {
         // ignore parse errors

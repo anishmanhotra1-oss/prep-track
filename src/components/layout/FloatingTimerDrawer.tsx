@@ -49,7 +49,11 @@ export const FloatingTimerDrawer: React.FC = () => {
       if (res.ok) {
         const json = await res.json();
         setActiveTimer(json.activeTimer || { status: "idle", accumulatedMs: 0, revise: false, laps: [] });
+        queryClient.invalidateQueries({ queryKey: ["stats"] });
         queryClient.invalidateQueries({ queryKey: ["study-sessions"] });
+        queryClient.invalidateQueries({ queryKey: ["today-sessions"] });
+        queryClient.invalidateQueries({ queryKey: ["history-aggregation"] });
+        queryClient.invalidateQueries({ queryKey: ["day-sessions"] });
         toast("Session saved!", "success");
         setMiniDrawerOpen(false);
       }

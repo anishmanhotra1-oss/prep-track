@@ -55,48 +55,44 @@ export default function PlannerPage() {
 
   const gridScrollRef = useRef<HTMLDivElement>(null);
 
-  // Calculate Date Window for Query
-  const getDaysArray = () => {
+  // Calculate Date Window for Query safely without in-place mutation
+  const getDaysArray = (): Date[] => {
     const days: Date[] = [];
-    const d = new Date(currentDate);
+    const base = new Date(currentDate);
+    if (isNaN(base.getTime())) return [new Date()];
 
     if (viewMode === "day") {
-      days.push(new Date(d));
-    } else if (viewMode === "workweek") {
-      const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
-      const monday = new Date(d.setDate(diff));
-      for (let i = 0; i < 5; i++) {
-        const nextDay = new Date(monday);
-        nextDay.setDate(monday.getDate() + i);
-        days.push(nextDay);
-      }
+      days.push(new Date(base));
     } else {
-      // Week
-      const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
-      const monday = new Date(d.setDate(diff));
-      for (let i = 0; i < 7; i++) {
-        const nextDay = new Date(monday);
-        nextDay.setDate(monday.getDate() + i);
+      const day = base.getDay(); // 0 is Sunday
+      const diff = base.getDate() - day + (day === 0 ? -6 : 1); // Monday
+      const monday = new Date(base.getFullYear(), base.getMonth(), diff);
+      const count = viewMode === "workweek" ? 5 : 7;
+      for (let i = 0; i < count; i++) {
+        const nextDay = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
         days.push(nextDay);
       }
     }
-    return days;
+    return days.length > 0 ? days : [new Date()];
   };
 
   const daysList = getDaysArray();
-  const startWindowStr = daysList[0]?.toISOString().split("T")[0];
-  const endWindowStr = daysList[daysList.length - 1]?.toISOString().split("T")[0];
+  const startWindowStr = daysList[0] ? daysList[0].toISOString().split("T")[0] : new Date().toISOString().split("T")[0];
+  const endWindowStr = daysList[daysList.length - 1]
+    ? daysList[daysList.length - 1].toISOString().split("T")[0]
+    : startWindowStr;
 
   // Queries
-  const { data: plannerData } = useQuery({
+  const { data: plannerData, isError: isPlannerError, refetch: refetchPlanner } = useQuery({
     queryKey: ["planner", startWindowStr, endWindowStr],
     queryFn: async () => {
-      const res = await fetch(`/api/planner?start=${startWindowStr}&end=${endWindowStr}`);
+      const res = await fetch(`/api/planner?start=${startWindowStr}&end=${endWindowStr}`, {
+        cache: "no-store",
+      });
       if (!res.ok) throw new Error("Failed to load planner blocks");
       return res.json();
     },
+    retry: 2,
   });
 
   const { data: subjectsData } = useQuery({
@@ -388,9 +384,11 @@ export default function PlannerPage() {
               const isToday = dateStr === new Date().toISOString().split("T")[0];
 
               // Filter blocks belonging to this day
-              const dayBlocks = rawBlocks.filter((b: any) => {
-                const bStartStr = new Date(b.startAt).toISOString().split("T")[0];
-                return bStartStr === dateStr;
+              const dayBlocks = (rawBlocks || []).filter((b: any) => {
+                if (!b?.startAt) return false;
+                const bDate = new Date(b.startAt);
+                if (isNaN(bDate.getTime())) return false;
+                return bDate.toISOString().split("T")[0] === dateStr;
               });
 
               return (
@@ -414,11 +412,13 @@ export default function PlannerPage() {
                   {dayBlocks.map((block: any) => {
                     const startObj = new Date(block.startAt);
                     const endObj = new Date(block.endAt);
+                    const validStart = !isNaN(startObj.getTime());
+                    const validEnd = !isNaN(endObj.getTime());
 
-                    const startHour = startObj.getHours() + startObj.getMinutes() / 60;
-                    const endHour = endObj.getHours() + endObj.getMinutes() / 60;
+                    const startHour = validStart ? startObj.getHours() + startObj.getMinutes() / 60 : 6;
+                    const endHour = validEnd ? endObj.getHours() + endObj.getMinutes() / 60 : startHour + 1;
 
-                    const topPx = (startHour - 6) * hourHeight;
+                    const topPx = Math.max(0, (startHour - 6) * hourHeight);
                     const heightPx = Math.max(30, (endHour - startHour) * hourHeight);
 
                     const isDone = !!block.doneAt;
@@ -449,8 +449,8 @@ export default function PlannerPage() {
                             {block.recurrence && <RotateCcw className="w-3 h-3 text-[#FF9A4D]" />}
                           </div>
                           <p className="text-[10px] text-text-muted font-mono mt-0.5">
-                            {startObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
-                            {endObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {validStart ? startObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--:--"} -{" "}
+                            {validEnd ? endObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--:--"}
                           </p>
                         </div>
                       </div>
@@ -553,7 +553,7 @@ export default function PlannerPage() {
       {/* Create Block Modal */}
       <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Create Planner Block">
         <form onSubmit={handleSaveBlock} className="flex flex-col gap-4">
-          <Input label="Title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} required />
+          <Input label="Title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} required maxLength={120} />
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-text-muted uppercase">Subject</label>

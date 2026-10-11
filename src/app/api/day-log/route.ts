@@ -3,9 +3,11 @@ import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const dayLogSchema = z.object({
   date: z.string(), // YYYY-MM-DD
-  note: z.string().nullable().optional(),
+  note: z.string().max(1000, "Note cannot exceed 1000 characters").nullable().optional(),
   isRestDay: z.boolean().optional(),
 });
 

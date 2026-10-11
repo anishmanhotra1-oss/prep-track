@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notifyUserSync } from "@/lib/sse";
 
+export const dynamic = "force-dynamic";
+
 const updateSessionSchema = z.object({
   subjectId: z.string().nullable().optional(),
-  topic: z.string().min(1).optional(),
+  topic: z.string().trim().min(1).max(120, "Topic cannot exceed 120 characters").optional(),
   startAt: z.string().optional(),
   endAt: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  note: z.string().nullable().optional(),
+  tags: z.array(z.string().max(30)).max(20).optional(),
+  note: z.string().max(1000, "Notes cannot exceed 1000 characters").nullable().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -58,6 +61,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     });
 
     notifyUserSync(user.id, { type: "STUDY_SESSION_UPDATED", entity: "study-sessions", id: updated.id });
+    try {
+      revalidatePath("/stats");
+      revalidatePath("/history");
+      revalidatePath("/stopwatch");
+    } catch (e) {}
+
     return NextResponse.json({ studySession: updated });
   } catch (error) {
     return NextResponse.json({ error: { code: "SERVER_ERROR", message: "Failed to update study session" } }, { status: 500 });
@@ -86,6 +95,12 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     });
 
     notifyUserSync(user.id, { type: "STUDY_SESSION_DELETED", entity: "study-sessions", id });
+    try {
+      revalidatePath("/stats");
+      revalidatePath("/history");
+      revalidatePath("/stopwatch");
+    } catch (e) {}
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: { code: "SERVER_ERROR", message: "Failed to delete session" } }, { status: 500 });

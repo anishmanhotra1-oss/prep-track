@@ -3,6 +3,9 @@ import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDurationHuman } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 /**
  * PrepWise Streak Calculation Rule:
  * A day qualifies for streak progression if either:
@@ -179,6 +182,10 @@ export async function GET(req: Request) {
       chart30Days: {
         labels: last30DaysLabels,
         data: last30DaysHours,
+      },
+    }, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
       },
     });
   } catch (error) {

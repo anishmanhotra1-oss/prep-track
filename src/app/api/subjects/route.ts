@@ -4,9 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notifyUserSync } from "@/lib/sse";
 
+export const dynamic = "force-dynamic";
+
 const subjectSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  color: z.string().default("#3B82F6"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(60, "Subject name cannot exceed 60 characters"),
+  color: z.string().max(30).default("#3B82F6"),
 });
 
 export async function GET() {

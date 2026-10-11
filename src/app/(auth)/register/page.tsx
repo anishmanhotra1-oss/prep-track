@@ -68,6 +68,7 @@ export default function RegisterPage() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
+          maxLength={70}
         />
 
         <Input
@@ -77,6 +78,7 @@ export default function RegisterPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          maxLength={100}
         />
 
         <div className="relative w-full">
@@ -88,6 +90,7 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={8}
+            maxLength={128}
           />
           <button
             type="button"

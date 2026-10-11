@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notifyUserSync } from "@/lib/sse";
 
+export const dynamic = "force-dynamic";
+
 const stopModalSaveSchema = z.object({
   subjectId: z.string().nullable().optional(),
-  topic: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  note: z.string().optional(),
+  topic: z.string().trim().max(120, "Topic cannot exceed 120 characters").optional(),
+  tags: z.array(z.string().max(30)).max(20).optional(),
+  note: z.string().max(1000, "Notes cannot exceed 1000 characters").nullable().optional(),
   startAt: z.string().optional(),
   endAt: z.string().optional(),
 });
@@ -130,6 +133,12 @@ export async function POST(req: Request) {
 
     notifyUserSync(user.id, { type: "STUDY_SESSION_CREATED", entity: "study-sessions", id: studySession.id });
     notifyUserSync(user.id, { type: "TIMER_UPDATED", entity: "timer", id: updatedTimer.id });
+
+    try {
+      revalidatePath("/stats");
+      revalidatePath("/history");
+      revalidatePath("/stopwatch");
+    } catch (e) {}
 
     return NextResponse.json({
       studySession,

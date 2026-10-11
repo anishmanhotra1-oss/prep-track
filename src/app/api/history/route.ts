@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbRetry } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
@@ -10,36 +12,52 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const weeks = parseInt(searchParams.get("weeks") || "12");
+    const parsedWeeks = parseInt(searchParams.get("weeks") || "12", 10);
+    const weeks = isNaN(parsedWeeks) || parsedWeeks <= 0 ? 12 : Math.min(parsedWeeks, 52);
 
     // Fetch study sessions for past N weeks
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - weeks * 7);
+    startDate.setHours(0, 0, 0, 0);
 
-    const [sessions, dayLogs] = await Promise.all([
-      prisma.studySession.findMany({
-        where: { userId: user.id, startAt: { gte: startDate }, deletedAt: null },
-        select: { id: true, startAt: true, durationSeconds: true },
-      }),
-      prisma.dayLog.findMany({
-        where: { userId: user.id },
-      }),
-    ]);
+    const [sessions, dayLogs] = await withDbRetry(() =>
+      Promise.all([
+        prisma.studySession.findMany({
+          where: { userId: user.id, startAt: { gte: startDate }, deletedAt: null },
+          select: { id: true, startAt: true, durationSeconds: true },
+        }),
+        prisma.dayLog.findMany({
+          where: { userId: user.id },
+        }),
+      ])
+    );
 
     // Aggregate total minutes per YYYY-MM-DD
     const dailyMap: Record<string, number> = {};
-    sessions.forEach((s) => {
-      const dateKey = s.startAt.toISOString().split("T")[0];
-      dailyMap[dateKey] = (dailyMap[dateKey] || 0) + Math.round(s.durationSeconds / 60);
+    (sessions || []).forEach((s) => {
+      if (!s?.startAt) return;
+      const d = new Date(s.startAt);
+      if (isNaN(d.getTime())) return;
+      const dateKey = d.toISOString().split("T")[0];
+      const mins = Math.max(0, Math.round((s.durationSeconds || 0) / 60));
+      dailyMap[dateKey] = (dailyMap[dateKey] || 0) + mins;
     });
 
     const dayLogMap: Record<string, { note?: string | null; isRestDay?: boolean }> = {};
-    dayLogs.forEach((dl) => {
-      dayLogMap[dl.date] = { note: dl.note, isRestDay: dl.isRestDay };
+    (dayLogs || []).forEach((dl) => {
+      if (!dl?.date) return;
+      dayLogMap[dl.date] = { note: dl.note || null, isRestDay: Boolean(dl.isRestDay) };
     });
 
-    return NextResponse.json({ dailyMap, dayLogMap });
-  } catch (error) {
-    return NextResponse.json({ error: { code: "SERVER_ERROR", message: "Failed to fetch history aggregation" } }, { status: 500 });
+    return NextResponse.json(
+      { dailyMap, dayLogMap },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
+  } catch (error: any) {
+    console.error("History API error:", error);
+    return NextResponse.json(
+      { error: { code: "SERVER_ERROR", message: "Failed to fetch history aggregation" } },
+      { status: 500 }
+    );
   }
 }

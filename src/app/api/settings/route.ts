@@ -3,12 +3,19 @@ import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const settingsSchema = z.object({
-  name: z.string().min(1).optional(),
-  timezone: z.string().optional(),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(70, "Name cannot exceed 70 characters")
+    .optional(),
+  timezone: z.string().max(60).optional(),
   dayStartHour: z.number().min(0).max(23).optional(),
-  dailyGoalMinutes: z.number().min(1).optional(),
-  weekStart: z.string().optional(),
+  dailyGoalMinutes: z.number().min(1).max(1440).optional(),
+  weekStart: z.string().max(20).optional(),
   prefs: z.record(z.any()).optional(),
 });
 

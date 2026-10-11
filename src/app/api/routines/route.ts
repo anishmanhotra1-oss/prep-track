@@ -4,13 +4,19 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notifyUserSync } from "@/lib/sse";
 
+export const dynamic = "force-dynamic";
+
 const createRoutineSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  color: z.string().default("#F97316"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(80, "Routine name cannot exceed 80 characters"),
+  color: z.string().max(30).default("#F97316"),
   frequencyType: z.enum(["interval", "specific_weekdays", "weekly"]).default("interval"),
   intervalDays: z.number().nullable().optional().default(1),
   weekdays: z.array(z.number()).optional().default([]),
-  durationMinutes: z.number().default(30),
+  durationMinutes: z.number().min(1).max(1440).default(30),
 });
 
 export async function GET() {

@@ -4,8 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notifyUserSync } from "@/lib/sse";
 
+export const dynamic = "force-dynamic";
+
 const updateTodoSchema = z.object({
-  title: z.string().min(1).optional(),
+  title: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120, "Task title cannot exceed 120 characters")
+    .optional(),
   plannedMinutes: z.number().nullable().optional(),
   bucket: z.enum(["today", "later"]).optional(),
   completed: z.boolean().optional(),
