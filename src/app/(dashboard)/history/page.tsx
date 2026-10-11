@@ -195,6 +195,8 @@ export default function HistoryPage() {
   const handleOpenAdd = () => {
     resetForm();
     setIsAddModalOpen(true);
+  };
+
   const getSafeTags = (tags: any): string[] => {
     if (Array.isArray(tags)) return tags;
     if (typeof tags === "string") {

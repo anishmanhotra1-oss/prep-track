@@ -11,6 +11,7 @@ export default function ForgotPasswordPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [serverMessage, setServerMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {

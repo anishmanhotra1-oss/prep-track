@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { notifyUserSync } from "@/lib/sse";
 import { z } from "zod";
 
 const createColumnSchema = z.object({
