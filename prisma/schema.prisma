@@ -351,12 +351,11 @@ model PlannerBlock {
 }
 
 model RateLimit {
-  key       String   @id
-  count     Int      @default(1)
-  resetAt   BigInt
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  key     String @id
+  count   Int    @default(1)
+  resetAt BigInt
 
-  @@index([resetAt])
+  @@map("_RateLimit")
 }
+
 
